@@ -46,7 +46,7 @@ def lint_docs():
         'name': 'lint-docs',
         'image': build_image,
         'depends_on': [
-            'initialize',
+            'yarn-install',
         ],
         'environment': {
             'NODE_OPTIONS': '--max_old_space_size=8192',
