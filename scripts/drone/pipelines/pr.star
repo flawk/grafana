@@ -78,12 +78,12 @@ def pr_pipelines(edition):
         test_frontend_step(),
     ]
     build_steps = [
-        build_backend_step(edition=edition, ver_mode=ver_mode, variants=variants),
+        # build_backend_step(edition=edition, ver_mode=ver_mode, variants=variants),
         build_frontend_step(edition=edition, ver_mode=ver_mode),
-        build_frontend_package_step(edition=edition, ver_mode=ver_mode),
-        build_plugins_step(edition=edition),
-        validate_scuemata_step(),
-        ensure_cuetsified_step(),
+        # build_frontend_package_step(edition=edition, ver_mode=ver_mode),
+        # build_plugins_step(edition=edition),
+        # validate_scuemata_step(),
+        # ensure_cuetsified_step(),
     ]
     integration_test_steps = [
         postgres_integration_tests_step(edition=edition, ver_mode=ver_mode),
@@ -99,24 +99,24 @@ def pr_pipelines(edition):
             test_backend_step(edition=edition2),
             test_backend_integration_step(edition=edition2),
         ])
-        build_steps.extend([
-            build_backend_step(edition=edition2, ver_mode=ver_mode, variants=['linux-amd64']),
-        ])
+        # build_steps.extend([
+        #     build_backend_step(edition=edition2, ver_mode=ver_mode, variants=['linux-amd64']),
+        # ])
 
-    # Insert remaining build_steps
-    build_steps.extend([
-        package_step(edition=edition, ver_mode=ver_mode, include_enterprise2=include_enterprise2, variants=variants),
-        grafana_server_step(edition=edition),
-        e2e_tests_step('dashboards-suite', edition=edition),
-        e2e_tests_step('smoke-tests-suite', edition=edition),
-        e2e_tests_step('panels-suite', edition=edition),
-        e2e_tests_step('various-suite', edition=edition),
-        e2e_tests_artifacts(edition=edition),
-        build_storybook_step(edition=edition, ver_mode=ver_mode),
-        test_a11y_frontend_step(ver_mode=ver_mode, edition=edition),
-        copy_packages_for_docker_step(),
-        build_docker_images_step(edition=edition, ver_mode=ver_mode, archs=['amd64',]),
-    ])
+    # # Insert remaining build_steps
+    # build_steps.extend([
+    #     package_step(edition=edition, ver_mode=ver_mode, include_enterprise2=include_enterprise2, variants=variants),
+    #     grafana_server_step(edition=edition),
+    #     e2e_tests_step('dashboards-suite', edition=edition),
+    #     e2e_tests_step('smoke-tests-suite', edition=edition),
+    #     e2e_tests_step('panels-suite', edition=edition),
+    #     e2e_tests_step('various-suite', edition=edition),
+    #     e2e_tests_artifacts(edition=edition),
+    #     build_storybook_step(edition=edition, ver_mode=ver_mode),
+    #     test_a11y_frontend_step(ver_mode=ver_mode, edition=edition),
+    #     copy_packages_for_docker_step(),
+    #     build_docker_images_step(edition=edition, ver_mode=ver_mode, archs=['amd64',]),
+    # ])
 
     if include_enterprise2:
         integration_test_steps.extend([
@@ -139,13 +139,15 @@ def pr_pipelines(edition):
     }
 
     return [
+        # pipeline(
+        #     name='pr-test', edition=edition, trigger=trigger, services=[], steps=init_steps + test_steps,
+        # ),
         pipeline(
-            name='pr-test', edition=edition, trigger=trigger, services=[], steps=init_steps + test_steps,
-        ), pipeline(
             name='pr-build-e2e', edition=edition, trigger=trigger, services=[], steps=init_steps + build_steps,
-        ), pipeline(
-            name='pr-integration-tests', edition=edition, trigger=trigger, services=services,
-            steps=[download_grabpl_step()] + integration_test_steps,
-            volumes=volumes,
-        ), docs_pipelines(edition, ver_mode, trigger_docs())
+        ),
+        # pipeline(
+        #     name='pr-integration-tests', edition=edition, trigger=trigger, services=services,
+        #     steps=[download_grabpl_step()] + integration_test_steps,
+        #     volumes=volumes,
+        # ), docs_pipelines(edition, ver_mode, trigger_docs())
     ]
