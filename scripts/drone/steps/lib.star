@@ -1,6 +1,6 @@
 load('scripts/drone/vault.star', 'from_secret', 'github_token', 'pull_secret', 'drone_token', 'prerelease_bucket')
 
-grabpl_version = 'test-rm-init'
+grabpl_version = 'v2.9.33'
 build_image = 'grafana/build-container:1.5.3'
 publish_image = 'grafana/grafana-ci-deploy:1.3.1'
 deploy_docker_image = 'us.gcr.io/kubernetes-dev/drone/plugins/deploy-image'
@@ -127,6 +127,30 @@ def gen_version_step(ver_mode, is_downstream=False):
         ],
         'commands': [
             './bin/grabpl gen-version {}'.format(args),
+        ],
+    }
+
+def yarn_install_step():
+    return {
+        'name': 'yarn-install',
+        'image': build_image,
+        'commands': [
+            'yarn install --immutable',
+        ],
+        'depends_on': [
+            'grabpl',
+        ],
+    }
+
+def wire_install_step():
+    return {
+        'name': 'wire-install',
+        'image': build_image,
+        'commands': [
+            'make gen-go',
+        ],
+        'depends_on': [
+            'grabpl',
         ],
     }
 
@@ -403,7 +427,8 @@ def build_backend_step(edition, ver_mode, variants=None, is_downstream=False):
         'image': build_image,
         'environment': env,
         'depends_on': [
-            'grabpl',
+            'gen-version',
+            'wire-install',
         ],
         'commands': cmds,
     }
@@ -434,7 +459,8 @@ def build_frontend_step(edition, ver_mode, is_downstream=False):
             'NODE_OPTIONS': '--max_old_space_size=8192',
         },
         'depends_on': [
-            'grabpl',
+            'gen-version',
+            'yarn-install',
         ],
         'commands': cmds,
     }
