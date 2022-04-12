@@ -122,6 +122,9 @@ def gen_version_step(ver_mode, is_downstream=False):
     return {
         'name': 'gen-version',
         'image': build_image,
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': [
             './bin/grabpl gen-version {}'.format(args),
         ],
@@ -218,6 +221,9 @@ def lint_backend_step(edition):
             # We need CGO because of go-sqlite3
             'CGO_ENABLED': '1',
         },
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': [
             # Don't use Make since it will re-download the linters
             './bin/grabpl lint-backend --edition {}'.format(edition),
@@ -396,6 +402,9 @@ def build_backend_step(edition, ver_mode, variants=None, is_downstream=False):
         'name': 'build-backend' + enterprise2_suffix(edition),
         'image': build_image,
         'environment': env,
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': cmds,
     }
 
@@ -424,6 +433,9 @@ def build_frontend_step(edition, ver_mode, is_downstream=False):
         'environment': {
             'NODE_OPTIONS': '--max_old_space_size=8192',
         },
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': cmds,
     }
 
@@ -451,6 +463,9 @@ def build_frontend_package_step(edition, ver_mode, is_downstream=False):
         'environment': {
             'NODE_OPTIONS': '--max_old_space_size=8192',
         },
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': cmds,
     }
 
@@ -481,6 +496,9 @@ def build_plugins_step(edition, sign=False):
         'name': 'build-plugins',
         'image': build_image,
         'environment': env,
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': [
             # TODO: Use percentage for num jobs
             './bin/grabpl build-plugins --jobs 8 --edition {}{}'.format(edition, sign_args),
@@ -492,6 +510,9 @@ def test_backend_step(edition):
     return {
         'name': 'test-backend' + enterprise2_suffix(edition),
         'image': build_image,
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': [
             './bin/grabpl test-backend --edition {}'.format(edition),
         ],
@@ -502,6 +523,9 @@ def test_backend_integration_step(edition):
     return {
         'name': 'test-backend-integration' + enterprise2_suffix(edition),
         'image': build_image,
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': [
             './bin/grabpl integration-tests --edition {}'.format(edition),
         ],
@@ -515,6 +539,9 @@ def test_frontend_step():
         'environment': {
             'TEST_MAX_WORKERS': '50%',
         },
+        'depends_on': [
+            'grabpl',
+        ],
         'commands': [
             'yarn run ci:test-frontend',
         ],

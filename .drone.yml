@@ -17,6 +17,8 @@ steps:
   name: grabpl
 - commands:
   - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
+  depends_on:
+  - grabpl
   image: grafana/build-container:1.5.3
   name: gen-version
 - commands:
@@ -43,6 +45,8 @@ steps:
   name: shellcheck
 - commands:
   - ./bin/grabpl lint-backend --edition oss
+  depends_on:
+  - grabpl
   environment:
     CGO_ENABLED: "1"
   image: grafana/build-container:1.5.3
@@ -58,14 +62,20 @@ steps:
   name: lint-frontend
 - commands:
   - ./bin/grabpl test-backend --edition oss
+  depends_on:
+  - grabpl
   image: grafana/build-container:1.5.3
   name: test-backend
 - commands:
   - ./bin/grabpl integration-tests --edition oss
+  depends_on:
+  - grabpl
   image: grafana/build-container:1.5.3
   name: test-backend-integration
 - commands:
   - yarn run ci:test-frontend
+  depends_on:
+  - grabpl
   environment:
     TEST_MAX_WORKERS: 50%
   image: grafana/build-container:1.5.3
@@ -100,28 +110,38 @@ steps:
   name: grabpl
 - commands:
   - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
+  depends_on:
+  - grabpl
   image: grafana/build-container:1.5.3
   name: gen-version
 - commands:
   - ./bin/grabpl build-backend --jobs 8 --edition oss --build-id ${DRONE_BUILD_NUMBER}
     --variants linux-amd64,linux-amd64-musl,darwin-amd64,windows-amd64,armv6
+  depends_on:
+  - grabpl
   environment: {}
   image: grafana/build-container:1.5.3
   name: build-backend
 - commands:
   - ./bin/grabpl build-frontend --jobs 8 --edition oss --build-id ${DRONE_BUILD_NUMBER}
+  depends_on:
+  - grabpl
   environment:
     NODE_OPTIONS: --max_old_space_size=8192
   image: grafana/build-container:1.5.3
   name: build-frontend
 - commands:
   - ./bin/grabpl build-frontend-packages --jobs 8 --edition oss --build-id ${DRONE_BUILD_NUMBER}
+  depends_on:
+  - grabpl
   environment:
     NODE_OPTIONS: --max_old_space_size=8192
   image: grafana/build-container:1.5.3
   name: build-frontend-packages
 - commands:
   - ./bin/grabpl build-plugins --jobs 8 --edition oss
+  depends_on:
+  - grabpl
   environment: null
   image: grafana/build-container:1.5.3
   name: build-plugins
@@ -392,6 +412,8 @@ steps:
   name: grabpl
 - commands:
   - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
+  depends_on:
+  - grabpl
   image: grafana/build-container:1.5.3
   name: gen-version
 - commands:
@@ -426,6 +448,8 @@ steps:
   name: lint-docs
 - commands:
   - ./bin/grabpl build-frontend-packages --jobs 8 --edition oss --build-id ${DRONE_BUILD_NUMBER}
+  depends_on:
+  - grabpl
   environment:
     NODE_OPTIONS: --max_old_space_size=8192
   image: grafana/build-container:1.5.3
@@ -488,6 +512,6 @@ kind: secret
 name: gcp_upload_artifacts_key
 ---
 kind: signature
-hmac: ddac561e227572d8b85ffd8506493404b224f5195520f06625ee1baf2f830d1b
+hmac: 8fc3c8facddc736fa2da1b04fc0176e81ba2e2ec05820119675020ab67979939
 
 ...
