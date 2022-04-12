@@ -490,7 +490,8 @@ def build_frontend_package_step(edition, ver_mode, is_downstream=False):
             'NODE_OPTIONS': '--max_old_space_size=8192',
         },
         'depends_on': [
-            'grabpl',
+            'gen-version',
+            'yarn-install',
         ],
         'commands': cmds,
     }
@@ -523,7 +524,8 @@ def build_plugins_step(edition, sign=False):
         'image': build_image,
         'environment': env,
         'depends_on': [
-            'grabpl',
+            'gen-version',
+            'yarn-install',
         ],
         'commands': [
             # TODO: Use percentage for num jobs

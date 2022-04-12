@@ -159,7 +159,8 @@ steps:
 - commands:
   - ./bin/grabpl build-frontend-packages --jobs 8 --edition oss --build-id ${DRONE_BUILD_NUMBER}
   depends_on:
-  - grabpl
+  - gen-version
+  - yarn-install
   environment:
     NODE_OPTIONS: --max_old_space_size=8192
   image: grafana/build-container:1.5.3
@@ -167,7 +168,8 @@ steps:
 - commands:
   - ./bin/grabpl build-plugins --jobs 8 --edition oss
   depends_on:
-  - grabpl
+  - gen-version
+  - yarn-install
   environment: null
   image: grafana/build-container:1.5.3
   name: build-plugins
@@ -420,93 +422,6 @@ volumes:
   temp:
     medium: memory
 ---
-depends_on: []
-kind: pipeline
-name: pr-docs
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.9.33/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
-  depends_on:
-  - grabpl
-  image: grafana/build-container:1.5.3
-  name: gen-version
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.15
-  name: identify-runner
-- commands:
-  - make gen-go
-  depends_on:
-  - gen-version
-  image: grafana/build-container:1.5.3
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  image: grafana/build-container:1.5.3
-  name: codespell
-- commands:
-  - yarn run prettier:checkDocs
-  depends_on:
-  - initialize
-  environment:
-    NODE_OPTIONS: --max_old_space_size=8192
-  image: grafana/build-container:1.5.3
-  name: lint-docs
-- commands:
-  - ./bin/grabpl build-frontend-packages --jobs 8 --edition oss --build-id ${DRONE_BUILD_NUMBER}
-  depends_on:
-  - grabpl
-  environment:
-    NODE_OPTIONS: --max_old_space_size=8192
-  image: grafana/build-container:1.5.3
-  name: build-frontend-packages
-- commands:
-  - ./scripts/ci-reference-docs-lint.sh ci
-  depends_on:
-  - build-frontend-packages
-  image: grafana/build-container:1.5.3
-  name: build-frontend-docs
-- commands:
-  - mkdir -p /hugo/content/docs/grafana
-  - cp -r docs/sources/* /hugo/content/docs/grafana/latest/
-  - cd /hugo && make prod
-  depends_on:
-  - build-frontend-docs
-  image: grafana/docs-base:latest
-  name: build-docs-website
-trigger:
-  event:
-  - pull_request
-  paths:
-    include:
-    - docs/**
-    - packages/**
-type: docker
-volumes:
-- host:
-    path: /var/run/docker.sock
-  name: docker
----
 get:
   name: .dockerconfigjson
   path: secret/data/common/gcr
@@ -538,6 +453,6 @@ kind: secret
 name: gcp_upload_artifacts_key
 ---
 kind: signature
-hmac: 05e9270b6328ca214456639327351d5615c2bad0e738fed4f92c83aa64973f77
+hmac: 72cad0ae7f671ac5d7f4a2b2c334df7079fcb10ea242335ecaa51f4c2fddeac2
 
 ...
