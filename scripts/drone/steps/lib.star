@@ -1,6 +1,6 @@
 load('scripts/drone/vault.star', 'from_secret', 'github_token', 'pull_secret', 'drone_token', 'prerelease_bucket')
 
-grabpl_version = 'v2.9.33'
+grabpl_version = 'test-rm-init'
 build_image = 'grafana/build-container:1.5.3'
 publish_image = 'grafana/grafana-ci-deploy:1.3.1'
 deploy_docker_image = 'us.gcr.io/kubernetes-dev/drone/plugins/deploy-image'
@@ -30,7 +30,7 @@ def slack_step(channel, template, secret):
     }
 
 
-def initialize_step(edition, platform, ver_mode, is_downstream=False, install_deps=True):
+def initialize_step(edition, platform, ver_mode, is_downstream=False):
     if platform == 'windows':
         return [
             {
@@ -49,22 +49,10 @@ def initialize_step(edition, platform, ver_mode, is_downstream=False, install_de
     ]
 
     if ver_mode == 'release':
-        args = '${DRONE_TAG}'
         common_cmds.append('./bin/grabpl verify-version ${DRONE_TAG}')
-    else:
-        if not is_downstream:
-            build_no = '${DRONE_BUILD_NUMBER}'
-        else:
-            build_no = '$${SOURCE_BUILD_NUMBER}'
-        args = '--build-id {}'.format(build_no)
 
     identify_runner = identify_runner_step(platform)
 
-    if install_deps:
-        common_cmds.extend([
-            './bin/grabpl gen-version {}'.format(args),
-            'yarn install --immutable',
-        ])
     if edition in ('enterprise', 'enterprise2'):
         source_commit = ''
         if ver_mode == 'release':
@@ -114,10 +102,30 @@ def initialize_step(edition, platform, ver_mode, is_downstream=False, install_de
             'name': 'initialize',
             'image': build_image,
             'commands': common_cmds,
+            'depends_on': [
+                'gen-version',
+            ]
         },
     ]
 
     return steps
+
+def gen_version_step(ver_mode, is_downstream=False):
+    if ver_mode == 'release':
+        args = '${DRONE_TAG}'
+    else:
+        if not is_downstream:
+            build_no = '${DRONE_BUILD_NUMBER}'
+        else:
+            build_no = '$${SOURCE_BUILD_NUMBER}'
+        args = '--build-id {}'.format(build_no)
+    return {
+        'name': 'gen-version',
+        'image': build_image,
+        'commands': [
+            './bin/grabpl gen-version {}'.format(args),
+        ],
+    }
 
 
 def identify_runner_step(platform):
@@ -210,9 +218,6 @@ def lint_backend_step(edition):
             # We need CGO because of go-sqlite3
             'CGO_ENABLED': '1',
         },
-        'depends_on': [
-            'initialize',
-        ],
         'commands': [
             # Don't use Make since it will re-download the linters
             './bin/grabpl lint-backend --edition {}'.format(edition),
@@ -224,9 +229,6 @@ def benchmark_ldap_step():
     return {
         'name': 'benchmark-ldap',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': {
             'LDAP_HOSTNAME': 'ldap',
         },
@@ -393,9 +395,6 @@ def build_backend_step(edition, ver_mode, variants=None, is_downstream=False):
     return {
         'name': 'build-backend' + enterprise2_suffix(edition),
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': env,
         'commands': cmds,
     }
@@ -422,9 +421,6 @@ def build_frontend_step(edition, ver_mode, is_downstream=False):
     return {
         'name': 'build-frontend',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': {
             'NODE_OPTIONS': '--max_old_space_size=8192',
         },
@@ -452,9 +448,6 @@ def build_frontend_package_step(edition, ver_mode, is_downstream=False):
     return {
         'name': 'build-frontend-packages',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': {
             'NODE_OPTIONS': '--max_old_space_size=8192',
         },
@@ -487,9 +480,6 @@ def build_plugins_step(edition, sign=False):
     return {
         'name': 'build-plugins',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': env,
         'commands': [
             # TODO: Use percentage for num jobs
@@ -502,9 +492,6 @@ def test_backend_step(edition):
     return {
         'name': 'test-backend' + enterprise2_suffix(edition),
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'commands': [
             './bin/grabpl test-backend --edition {}'.format(edition),
         ],
@@ -515,9 +502,6 @@ def test_backend_integration_step(edition):
     return {
         'name': 'test-backend-integration' + enterprise2_suffix(edition),
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'commands': [
             './bin/grabpl integration-tests --edition {}'.format(edition),
         ],
@@ -528,9 +512,6 @@ def test_frontend_step():
     return {
         'name': 'test-frontend',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': {
             'TEST_MAX_WORKERS': '50%',
         },
@@ -544,9 +525,6 @@ def lint_frontend_step():
     return {
         'name': 'lint-frontend',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'environment': {
             'TEST_MAX_WORKERS': '50%',
         },
@@ -617,9 +595,6 @@ def codespell_step():
     return {
         'name': 'codespell',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'commands': [
             # Important: all words have to be in lowercase, and separated by "\n".
             'echo -e "unknwon\nreferer\nerrorstring\neror\niam\nwan" > words_to_ignore.txt',
@@ -633,9 +608,6 @@ def shellcheck_step():
     return {
         'name': 'shellcheck',
         'image': build_image,
-        'depends_on': [
-            'initialize',
-        ],
         'commands': [
             './bin/grabpl shellcheck',
         ],
@@ -847,10 +819,7 @@ def publish_images_step(edition, ver_mode, mode, docker_repo, trigger=None):
 
 def postgres_integration_tests_step(edition, ver_mode):
     deps = []
-    if edition in ('enterprise', 'enterprise2') and ver_mode in ('release-branch', 'release'):
-        deps.extend(['initialize'])
-    else:
-        deps.extend(['grabpl'])
+    deps.extend(['grabpl'])
     return {
         'name': 'postgres-integration-tests',
         'image': build_image,
@@ -875,10 +844,7 @@ def postgres_integration_tests_step(edition, ver_mode):
 
 def mysql_integration_tests_step(edition, ver_mode):
     deps = []
-    if edition in ('enterprise', 'enterprise2') and ver_mode in ('release-branch', 'release'):
-        deps.extend(['initialize'])
-    else:
-        deps.extend(['grabpl'])
+    deps.extend(['grabpl'])
     return {
         'name': 'mysql-integration-tests',
         'image': build_image,
@@ -901,10 +867,7 @@ def mysql_integration_tests_step(edition, ver_mode):
 
 def redis_integration_tests_step(edition, ver_mode):
     deps = []
-    if edition in ('enterprise', 'enterprise2') and ver_mode in ('release-branch', 'release'):
-        deps.extend(['initialize'])
-    else:
-        deps.extend(['grabpl'])
+    deps.extend(['grabpl'])
     return {
         'name': 'redis-integration-tests',
         'image': build_image,
@@ -921,10 +884,7 @@ def redis_integration_tests_step(edition, ver_mode):
 
 def memcached_integration_tests_step(edition, ver_mode):
     deps = []
-    if edition in ('enterprise', 'enterprise2') and ver_mode in ('release-branch', 'release'):
-        deps.extend(['initialize'])
-    else:
-        deps.extend(['grabpl'])
+    deps.extend(['grabpl'])
     return {
         'name': 'memcached-integration-tests',
         'image': build_image,

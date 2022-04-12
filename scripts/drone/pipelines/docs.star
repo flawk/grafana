@@ -1,6 +1,7 @@
 load(
     'scripts/drone/steps/lib.star',
     'build_image',
+    'gen_version_step',
     'initialize_step',
     'download_grabpl_step',
     'lint_frontend_step',
@@ -25,7 +26,7 @@ load(
 
 
 def docs_pipelines(edition, ver_mode, trigger):
-    steps = [download_grabpl_step()] + initialize_step(edition, platform='linux', ver_mode=ver_mode)
+    steps = [download_grabpl_step(), gen_version_step(ver_mode)] + initialize_step(edition, platform='linux', ver_mode=ver_mode)
 
     # Insert remaining steps
     steps.extend([

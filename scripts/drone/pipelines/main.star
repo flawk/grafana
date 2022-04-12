@@ -2,6 +2,7 @@ load(
     'scripts/drone/steps/lib.star',
     'download_grabpl_step',
     'build_image',
+    'gen_version_step',
     'initialize_step',
     'lint_drone_step',
     'lint_backend_step',
@@ -220,12 +221,12 @@ def main_pipelines(edition):
         docs_pipelines(edition, ver_mode, trigger),
         pipeline(
             name='main-test', edition=edition, trigger=trigger, services=[],
-            steps=[download_grabpl_step()] + initialize_step(edition, platform='linux', ver_mode=ver_mode) + test_steps,
+            steps=[download_grabpl_step(), gen_version_step(ver_mode)] + initialize_step(edition, platform='linux', ver_mode=ver_mode) + test_steps,
             volumes=[],
         ),
         pipeline(
             name='main-build-e2e-publish', edition=edition, trigger=trigger, services=[],
-            steps=[download_grabpl_step()] + initialize_step(edition, platform='linux', ver_mode=ver_mode) + build_steps,
+            steps=[download_grabpl_step(), gen_version_step(ver_mode)] + initialize_step(edition, platform='linux', ver_mode=ver_mode) + build_steps,
             volumes=volumes,
         ),
         pipeline(
